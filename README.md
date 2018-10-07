@@ -10,7 +10,7 @@ The bookmarks are stored in a sqlite3 database, for ease of deployment & mainten
 
 log in — username: demo  password: demo
 
-http://ae8.org/u:demo
+https://esp.ae8.org/u:demo
 
 ![jpg](https://i.imgur.com/y8PE0Ul.png)
 
