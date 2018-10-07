@@ -2,6 +2,20 @@
 
 Espial is an open-source, web-based bookmarking server.
 
+It allows mutiple accounts, but currently intended for self-host scenarios.
+
+The bookmarks are stored in a sqlite3 database, for ease of deployment & maintenence.
+
+## demo server
+
+log in — username: demo  password: demo
+
+http://ae8.org/u:demo
+
+![jpg](https://i.imgur.com/y8PE0Ul.png)
+
+
+
 ## Haskell Setup
 
 1. If you haven't already, [install Stack](https://haskell-lang.org/get-started)
