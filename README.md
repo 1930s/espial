@@ -6,6 +6,8 @@ It allows mutiple accounts, but currently intended for self-host scenarios.
 
 The bookmarks are stored in a sqlite3 database, for ease of deployment & maintenence.
 
+The easist way for logged-in users to add bookmarks, is with the "bookmarklet", found on the Settings page.
+
 ## demo server
 
 log in — username: demo  password: demo
