@@ -2,7 +2,7 @@ module Types where
 
 import ClassyPrelude.Yesod
 
-type ControlIO m = (MonadIO m, MonadBaseControl IO m)
+type ControlIO m = MonadUnliftIO m
 
 type DBM m a =
   (ControlIO m, MonadThrow m, Monad m) => SqlPersistT m a

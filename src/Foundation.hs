@@ -87,10 +87,8 @@ instance Yesod App where
       where
         genFileName lbs = "autogen-" ++ base64md5 lbs
 
-    shouldLog app _source level =
-        appShouldLogAll (appSettings app)
-            || level == LevelWarn
-            || level == LevelError
+    shouldLogIO app _source level =
+        pure $ appShouldLogAll (appSettings app) || level == LevelWarn || level == LevelError
     makeLogger = return . appLogger
 
     authRoute _ = Just (AuthR LoginR)
@@ -177,7 +175,7 @@ routeToConstr = \case
 
 instance YesodAuth App where
   type AuthId App = UserId
-  authHttpManager = getHttpManager
+  -- authHttpManager = getHttpManager
   authPlugins _ = [dbAuthPlugin]
   authenticate = authenticateCreds
   loginDest = const HomeR
@@ -192,7 +190,7 @@ instance YesodAuth App where
 instance YesodAuthPersist App
 
 instance MM.MonadMetrics Handler where
-  getMetrics = asks appMetrics
+  getMetrics = pure . appMetrics =<< getYesod 
 
 -- session keys
 
@@ -229,13 +227,12 @@ dbLoginR = PluginR dbAuthPluginName ["login"]
 
 dbPostLoginR ::  AuthHandler master TypedContent
 dbPostLoginR = do
-  mresult <- lift $ runInputPostResult (dbLoginCreds
-                    <$> ireq textField "username"
-                    <*> ireq textField "password")
+  mresult <- runInputPostResult (dbLoginCreds
+               <$> ireq textField "username"
+               <*> ireq textField "password")
   case mresult of
-    FormSuccess creds -> lift (setCredsRedirect creds)
+    FormSuccess creds -> setCredsRedirect creds
     _ -> loginErrorMessageI LoginR InvalidUsernamePass
-
 
 dbLoginCreds :: Text -> Text -> Creds master
 dbLoginCreds username password =
@@ -245,12 +242,10 @@ dbLoginCreds username password =
   , credsExtra = [("password", password)]
   }
 
-authenticateCreds
-  :: (AuthId master ~ UserId)
-  => Creds master
-  -> Handler (AuthenticationResult App)
+authenticateCreds :: (MonadHandler m, HandlerSite m ~ App)
+                 => Creds App -> m (AuthenticationResult App)
 authenticateCreds creds = do
-  muser <- runDB (authenticatePassword
+  muser <- liftHandler $ runDB (authenticatePassword
                    (credsIdent creds)
                    (fromMaybe "" (lookup "password" (credsExtra creds))))
   case muser of
@@ -260,9 +255,11 @@ authenticateCreds creds = do
 -- Util
 
 instance RenderMessage App FormMessage where
+    renderMessage :: App -> [Lang] -> FormMessage -> Text
     renderMessage _ _ = defaultFormMessage
 
 instance HasHttpManager App where
+    getHttpManager :: App -> Manager
     getHttpManager = appHttpManager
 
 unsafeHandler :: App -> Handler a -> IO a

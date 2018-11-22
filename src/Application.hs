@@ -21,6 +21,7 @@ import Import
 import Yesod.Auth (getAuth)
 import Language.Haskell.TH.Syntax (qLocation)
 import Lens.Micro
+import Network.HTTP.Client.TLS
 import Network.Wai (Middleware)
 import Network.Wai.Middleware.Autohead
 import Network.Wai.Middleware.AcceptOverride
@@ -53,7 +54,7 @@ mkYesodDispatch "App" resourcesApp
 
 makeFoundation :: AppSettings -> IO App
 makeFoundation appSettings = do
-  appHttpManager <- newManager
+  appHttpManager <- getGlobalManager
   appLogger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
   store <- EKG.newStore
   EKG.registerGcMetrics store
@@ -171,5 +172,5 @@ handler :: Handler a -> IO a
 handler h = getAppSettings >>= makeFoundation >>= flip unsafeHandler h
 
 -- | Run DB queries
-db :: ReaderT SqlBackend (HandlerT App IO) a -> IO a
+db :: ReaderT SqlBackend (HandlerFor App) a -> IO a
 db = handler . runDB
