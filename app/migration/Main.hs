@@ -10,6 +10,7 @@ import qualified Database.Persist as P
 import qualified Database.Persist.Sqlite as P
 
 import ClassyPrelude
+import Lens.Micro
 
 import Options.Generic
 
@@ -27,6 +28,7 @@ data MigrationOpts
   | ImportNotes { conn :: Text
                 , userName :: Text
                 , noteDirectory :: FilePath}
+  | PrintMigrateDB { conn :: Text}
   deriving (Generic, Show)
 
 instance ParseRecord MigrationOpts
@@ -35,9 +37,13 @@ main :: IO ()
 main = do
   args <- getRecord "Migrations"
   case args of
+    PrintMigrateDB conn ->
+      P.runSqlite conn dumpMigration
 
-    CreateDB conn ->
-      P.runSqlite conn runMigrations
+    CreateDB conn -> do
+      let connInfo = P.mkSqliteConnectionInfo conn
+                     & set P.fkEnabled False
+      P.runSqliteInfo connInfo runMigrations
 
     CreateUser conn uname upass utoken ->
       P.runSqlite conn $ do
