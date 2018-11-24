@@ -118,11 +118,12 @@ dependencies:
 - esqueleto
 - hscolour
 - http-api-data >= 0.3.4
+- http-client
+- http-types
 - iso8601-time >=0.1.3
 - microlens
 - monad-metrics
 - mtl
-- http-client
 - persistent-sqlite >=2.6.2
 - pinboard
 - pretty-show

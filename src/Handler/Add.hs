@@ -9,8 +9,10 @@ import Data.Function ((&))
 import qualified Data.Attoparsec.ByteString.Char8 as AP
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as BS8
 import qualified Network.HTTP.Client as NH
 import qualified Network.HTTP.Client.TLS as NH
+import qualified Network.HTTP.Types.Status as NH
 import qualified Web.FormUrlEncoded as WH
 
 -- View
@@ -63,48 +65,82 @@ postAddR = do
 _handleFormSuccess :: BookmarkForm -> Handler (UpsertResult, Key Bookmark)
 _handleFormSuccess bookmarkForm = do
   cpprint bookmarkForm
-  userId <- requireAuthId
+  (userId, user) <- requireAuthPair
   time <- liftIO getCurrentTime
   let bm = _toBookmark userId time bookmarkForm
-  if (not ("youtube" `isInfixOf` bookmarkHref bm))
-    then void $ async (queueArchiveBookmark bm)
-    else pure ()
+  when (shouldArchive user bm) $
+    void $ async (archiveBookmark bm)
   runDB (upsertBookmark kbid bm tags)
   where
     kbid = toSqlKey <$> _bid bookmarkForm
     tags = maybe [] (nub . words) (_tags bookmarkForm)
 
-queueArchiveBookmark :: Bookmark -> Handler ()
-queueArchiveBookmark (Bookmark {..}) = do
+shouldArchive :: User -> Bookmark -> Bool
+shouldArchive _ bm =
+  (bookmarkShared bm) &&
+  not (isBlacklisted bm)
+  -- && isArchiveEnabled
+
+isBlacklisted :: Bookmark -> Bool 
+isBlacklisted (Bookmark {..}) =
+  "youtube" `isInfixOf` bookmarkHref
+
+archiveBookmark :: Bookmark -> Handler ()
+archiveBookmark bm = do
   fetchArchiveSubmitId >>= \case
     Left e -> do
       cpprint e
       pure ()
     Right submitId ->  do
       cpprint submitId
-      manager <- liftIO NH.getGlobalManager
-      let req = NH.parseRequest_ "POST http://archive.is/submit/" & (\r -> r
-              { NH.requestHeaders =
-                [ ("User-Agent", "espial")
-                , ("Content-Type", "application/x-www-form-urlencoded")
-                ]
-              , NH.requestBody = NH.RequestBodyLBS $ WH.urlEncodeAsForm ((
-                [ ("submitid" , submitId)
-                , ("url", unpack bookmarkHref)
-                ]) :: [(String, String)])
-              , NH.redirectCount = 0
-              })
-      cpprint req
-      res <- liftIO $ NH.httpLbs req manager 
-      cpprint res
-      pure ()
+      forM_ (buildArchiveRequest submitId (unpack (bookmarkHref bm))) $ \req -> do
+        res <- liftIO $ NH.httpLbs req =<< NH.getGlobalManager
+        cpprint res
+        case NH.responseStatus res of
+          s | s == NH.status200 ->
+            forM_ (lookup "Refresh" (NH.responseHeaders res)) $ \h ->
+              forM_ (parseRefreshHeaderUrl h) (updateBookmarkArchiveUrl bm)
+          s | s == NH.status302 ->
+            forM_ (lookup "Location" (NH.responseHeaders res)) (updateBookmarkArchiveUrl bm)
+          _ -> pure ()
+
+parseRefreshHeaderUrl :: ByteString -> Maybe ByteString
+parseRefreshHeaderUrl h = do
+  let u = BS8.drop 1 $ BS8.dropWhile (/= '=') h
+  if (not (null u))
+    then Just u
+    else Nothing
+
+updateBookmarkArchiveUrl :: Bookmark -> ByteString -> Handler ()
+updateBookmarkArchiveUrl bm archiveUrl = do
+  cpprint archiveUrl
+  pure ()
+
+buildArchiveRequest :: String -> String -> Maybe NH.Request
+buildArchiveRequest submitId href =
+  NH.parseRequest "POST http://archive.is/submit/" <&> \r ->
+    r { NH.requestHeaders =
+        [ ("User-Agent", archiveUserAgent)
+        , ("Content-Type", "application/x-www-form-urlencoded")
+        ]
+      , NH.requestBody = NH.RequestBodyLBS $ WH.urlEncodeAsForm ((
+        [ ("submitid" , submitId)
+        , ("url", href)
+        ]) :: [(String, String)])
+      , NH.redirectCount = 0
+      }
 
 fetchArchiveSubmitId :: Handler (Either String String)
 fetchArchiveSubmitId = do
-  manager <- liftIO NH.getGlobalManager
-  let req = NH.parseRequest_ "https://archive.is/" & (\r -> r { NH.requestHeaders = [("User-Agent", "espial")] })
-  res <- liftIO $ NH.httpLbs req manager 
+  res <- liftIO $ NH.httpLbs buildSubmitRequest =<< NH.getGlobalManager
   pure $ parseSubmitId (LBS.toStrict (responseBody res))
+  where
+    buildSubmitRequest =
+      NH.parseRequest_ "https://archive.is/" & \r ->
+        r {NH.requestHeaders = [("User-Agent", archiveUserAgent)]}
+
+archiveUserAgent :: ByteString
+archiveUserAgent = "espial"
 
 parseSubmitId :: BS.ByteString -> Either String String
 parseSubmitId res = do
