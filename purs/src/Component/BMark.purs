@@ -7,10 +7,12 @@ import Control.Monad.State.Class (class MonadState)
 import Data.Array (drop, foldMap)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
+import Data.String (contains)
 import Data.String (null, split, take) as S
 import Data.String.Pattern (Pattern(..))
 import Data.Tuple (fst, snd)
 import Effect.Aff (Aff)
+import Global.Unsafe (unsafeEncodeURIComponent)
 import Globals (app', mmoment8601)
 import Halogen as H
 import Halogen.HTML (HTML, a, br_, button, div, div_, form, input, label, p, p_, span, text, textarea)
@@ -95,6 +97,8 @@ bmark b' =
            [ text $ if S.null bm.title then "[no title]" else bm.title ]
          , br_
          , a [ href bm.url , class_ "link f7 gray hover-blue" ] [ text bm.url ]
+         , a [ href ("http://archive.is/?run=1&url=" <> (unsafeEncodeURIComponent (bm.url))), class_ ("link f7 gray hover-blue ml2" <> guard (contains archiveGuard bm.url) " dn"), target "_blank", title "archive link"]
+             [ text "🗄" ]
          , br_
          , div [ class_ "description mt1 mid-gray" ] (toTextarea bm.description)
          , div [ class_ "tags" ] $
@@ -177,6 +181,7 @@ bmark b' =
              ]
          ]
 
+     archiveGuard = Pattern "youtube" 
      editField :: forall a. (a -> EditField) -> a -> Maybe (BQuery Unit)
      editField f = HE.input BEditField <<< f
      linkToFilterSingle bid = app.userR <> "/b:" <> show bid

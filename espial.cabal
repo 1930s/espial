@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7e40cc8c18fd5c476e73adb346af315bf3dbb19591f26cacf65f11c90fe669dd
+-- hash: 30a77681cd5fd479b2ade612fa3f69edf15e9139c62a8dbff5e0267322767c45
 
 name:           espial
 version:        0.0.6
@@ -86,6 +86,7 @@ library
   default-extensions: BangPatterns CPP ConstraintKinds DeriveDataTypeable DeriveGeneric EmptyDataDecls FlexibleContexts FlexibleInstances GADTs GeneralizedNewtypeDeriving InstanceSigs LambdaCase MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeFamilies TypeOperators ViewPatterns
   build-depends:
       aeson >=1.4
+    , attoparsec
     , base >=4.8.2.0 && <4.9 || >=4.9.1.0 && <5
     , bcrypt >=0.0.8
     , bytestring >=0.9 && <0.11
@@ -105,6 +106,8 @@ library
     , foreign-store
     , hjsmin >=0.1 && <0.3
     , hscolour
+    , http-api-data >=0.3.4
+    , http-client
     , http-client-tls >=0.3 && <0.4
     , http-conduit >=2.3 && <2.4
     , iso8601-time >=0.1.3
@@ -171,6 +174,7 @@ executable espial
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson >=1.4
+    , attoparsec
     , base >=4.8.2.0 && <4.9 || >=4.9.1.0 && <5
     , bcrypt >=0.0.8
     , bytestring >=0.9 && <0.11
@@ -191,6 +195,8 @@ executable espial
     , foreign-store
     , hjsmin >=0.1 && <0.3
     , hscolour
+    , http-api-data >=0.3.4
+    , http-client
     , http-client-tls >=0.3 && <0.4
     , http-conduit >=2.3 && <2.4
     , iso8601-time >=0.1.3
@@ -237,6 +243,7 @@ executable migration
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson >=1.4
+    , attoparsec
     , base >=4.8.2.0 && <4.9 || >=4.9.1.0 && <5
     , bcrypt >=0.0.8
     , bytestring >=0.9 && <0.11
@@ -257,6 +264,8 @@ executable migration
     , foreign-store
     , hjsmin >=0.1 && <0.3
     , hscolour
+    , http-api-data >=0.3.4
+    , http-client
     , http-client-tls >=0.3 && <0.4
     , http-conduit >=2.3 && <2.4
     , iso8601-time >=0.1.3
@@ -304,6 +313,7 @@ test-suite test
   ghc-options: -Wall
   build-depends:
       aeson >=1.4
+    , attoparsec
     , base >=4.8.2.0 && <4.9 || >=4.9.1.0 && <5
     , bcrypt >=0.0.8
     , bytestring >=0.9 && <0.11
@@ -325,6 +335,8 @@ test-suite test
     , hjsmin >=0.1 && <0.3
     , hscolour
     , hspec >=2.0.0
+    , http-api-data >=0.3.4
+    , http-client
     , http-client-tls >=0.3 && <0.4
     , http-conduit >=2.3 && <2.4
     , iso8601-time >=0.1.3
