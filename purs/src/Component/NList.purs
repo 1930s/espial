@@ -1,36 +1,28 @@
 module Component.NList where
 
-import Data.Argonaut
-import Prelude
+import Data.Argonaut (toNumber)
+import Prelude hiding (div)
 
 import App (destroyNote, editNote)
 import Control.Monad.State.Class (class MonadState)
 import Data.Array (drop, foldMap)
-import Data.Array (filter)
-import Data.Either (Either(..))
 import Data.Int as I
-import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Monoid (guard)
 import Data.String (null, split, take) as S
 import Data.String.Pattern (Pattern(..))
-import Data.Tuple (Tuple(..), fst, snd)
+import Data.Tuple (fst, snd)
 import Effect.Aff (Aff)
-import Effect.Class (liftEffect)
-import Effect.Exception (throw)
 import Globals (app', mmoment8601)
 import Halogen as H
-import Halogen.HTML (HTML, a, br_, button, div, div_, form, input, label, p, p_, span, text, textarea)
+import Halogen.HTML (a, br_, button, div, form, input, p, span, text, textarea)
 import Halogen.HTML as HH
-import Halogen.HTML.Events (onSubmit, onValueChange, onChecked, onClick)
+import Halogen.HTML.Events (onSubmit, onValueChange, onClick)
 import Halogen.HTML.Events as HE
-import Halogen.HTML.Events as HE
-import Halogen.HTML.Properties (ButtonType(..), InputType(..), autocomplete, checked, for, href, id_, name, required, rows, target, title, type_, value)
+import Halogen.HTML.Properties (ButtonType(..), InputType(..), href, id_, name, rows, target, title, type_, value)
 import Model (Note, NoteId)
-import Util (_curQuerystring, _loc, attr, class_)
+import Util (class_)
 import Web.Event.Event (Event, preventDefault)
-import Web.HTML (window)
-import Web.HTML.Location (setHref)
 
 data NLQuery a
   = NLNop a

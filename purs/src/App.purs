@@ -16,9 +16,7 @@ import Globals (app')
 import Model (Bookmark, Bookmark'(..), Note, Note'(..))
 import Network.HTTP.Affjax (affjax, AffjaxResponse)
 import Network.HTTP.Affjax (defaultRequest) as AX
-import Network.HTTP.Affjax.Request (Request(..))
 import Network.HTTP.Affjax.Request as AXReq
-import Network.HTTP.Affjax.Response (Response(..))
 import Network.HTTP.Affjax.Response as AXRes
 import Network.HTTP.RequestHeader (RequestHeader(..))
 import Simple.JSON as J

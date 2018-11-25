@@ -50,6 +50,7 @@ bookmarkFormUrl =
     <*> pure Nothing
     <*> pure Nothing
     <*> pure Nothing
+    <*> pure Nothing
   where
     parseChk s = s == "yes" || s == "on"
 
@@ -68,53 +69,56 @@ _handleFormSuccess bookmarkForm = do
   (userId, user) <- requireAuthPair
   time <- liftIO getCurrentTime
   let bm = _toBookmark userId time bookmarkForm
-  when (shouldArchive user bm) $
-    void $ async (archiveBookmark bm)
-  runDB (upsertBookmark kbid bm tags)
+  (res, kbid) <- runDB (upsertBookmark mkbid bm tags)
+  whenM (shouldArchive user kbid) $
+    void $ async (archiveBookmark (Entity kbid bm))
+  pure (res, kbid)
   where
-    kbid = toSqlKey <$> _bid bookmarkForm
+    mkbid = toSqlKey <$> _bid bookmarkForm
     tags = maybe [] (nub . words) (_tags bookmarkForm)
 
-shouldArchive :: User -> Bookmark -> Bool
-shouldArchive _ bm =
-  (bookmarkShared bm) &&
-  not (isBlacklisted bm)
-  -- && isArchiveEnabled
+shouldArchive :: User -> Key Bookmark -> Handler Bool
+shouldArchive _ kbid = do
+  runDB (get kbid) >>= \case
+    Nothing -> pure False
+    Just bm -> do
+      pure $
+        (isNothing $ bookmarkArchiveHref bm) &&
+        (bookmarkShared bm)
+        && not (isArchiveBlacklisted bm)
+     -- && isArchiveEnabled
 
-isBlacklisted :: Bookmark -> Bool 
-isBlacklisted (Bookmark {..}) =
+isArchiveBlacklisted :: Bookmark -> Bool 
+isArchiveBlacklisted (Bookmark {..}) =
   "youtube" `isInfixOf` bookmarkHref
 
-archiveBookmark :: Bookmark -> Handler ()
-archiveBookmark bm = do
+archiveBookmark :: Entity Bookmark -> Handler ()
+archiveBookmark (Entity kbid bm) = do
   fetchArchiveSubmitId >>= \case
     Left e -> do
-      cpprint e
+      $(logError) (pack e)
       pure ()
     Right submitId ->  do
-      cpprint submitId
       forM_ (buildArchiveRequest submitId (unpack (bookmarkHref bm))) $ \req -> do
         res <- liftIO $ NH.httpLbs req =<< NH.getGlobalManager
-        cpprint res
+        userId <- requireAuthId
         case NH.responseStatus res of
           s | s == NH.status200 ->
             forM_ (lookup "Refresh" (NH.responseHeaders res)) $ \h ->
-              forM_ (parseRefreshHeaderUrl h) (updateBookmarkArchiveUrl bm)
+              forM_ (parseRefreshHeaderUrl h) (runDB . updateBookmarkArchiveUrl userId kbid)
           s | s == NH.status302 ->
-            forM_ (lookup "Location" (NH.responseHeaders res)) (updateBookmarkArchiveUrl bm)
-          _ -> pure ()
+            forM_
+              (lookup "Location" (NH.responseHeaders res))
+              (runDB . updateBookmarkArchiveUrl userId kbid . decodeUtf8)
+          _ -> do
+            $(logError) (pack (show res))
 
-parseRefreshHeaderUrl :: ByteString -> Maybe ByteString
+parseRefreshHeaderUrl :: ByteString -> Maybe Text
 parseRefreshHeaderUrl h = do
   let u = BS8.drop 1 $ BS8.dropWhile (/= '=') h
   if (not (null u))
-    then Just u
+    then Just $ decodeUtf8 u
     else Nothing
-
-updateBookmarkArchiveUrl :: Bookmark -> ByteString -> Handler ()
-updateBookmarkArchiveUrl bm archiveUrl = do
-  cpprint archiveUrl
-  pure ()
 
 buildArchiveRequest :: String -> String -> Maybe NH.Request
 buildArchiveRequest submitId href =

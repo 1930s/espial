@@ -1,5 +1,6 @@
 module Model where
 
+import Data.Nullable (Nullable)
 import Simple.JSON as J
 
 type BookmarkId = Int
@@ -15,6 +16,7 @@ type Bookmark =
   , bid :: BookmarkId
   , selected :: Boolean
   , time :: String
+  , archiveUrl :: Nullable String
   }
 
 newtype Bookmark' = Bookmark' Bookmark

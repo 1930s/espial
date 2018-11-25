@@ -10,6 +10,7 @@ import Types
 import ModelCrypto
 import Pretty
 import ClassyPrelude.Yesod
+import qualified ClassyPrelude.Yesod as CP
 import System.Directory
 
 import Control.Monad.Trans.Maybe
@@ -37,6 +38,7 @@ Bookmark json
   shared Bool
   toRead Bool
   selected Bool
+  archiveHref Text Maybe
   UniqueUserHref userId href
   deriving Show Eq Typeable Ord
 
@@ -238,7 +240,7 @@ bookmarkEntityToTags (Entity {entityKey = bookmarkId
 
 pbPostToBookmark :: UserId -> PB.Post -> Bookmark
 pbPostToBookmark user PB.Post {..} =
-  Bookmark user postHref postDescription postExtended postTime postShared postToRead False
+  Bookmark user postHref postDescription postExtended postTime postShared postToRead False Nothing
 
 
 insertFilePbPosts :: Key User -> FilePath -> DB ()
@@ -297,6 +299,7 @@ data BookmarkForm = BookmarkForm
   , _bid :: Maybe Int64
   , _selected :: Maybe Bool
   , _time :: Maybe UTCTimeStr
+  , _archiveUrl :: Maybe Text
   } deriving (Show, Eq, Read, Generic)
 
 instance FromJSON BookmarkForm where parseJSON = A.genericParseJSON gBookmarkFormOptions
@@ -324,6 +327,7 @@ _toBookmarkForm (Entity bid Bookmark {..}, tags) =
   , _bid = Just $ fromSqlKey $ bid
   , _selected = Just $ bookmarkSelected
   , _time = Just $ UTCTimeStr $ bookmarkTime
+  , _archiveUrl = bookmarkArchiveHref
   }
 
 _toBookmark :: UserId -> UTCTime -> BookmarkForm -> Bookmark
@@ -335,6 +339,7 @@ _toBookmark userId time BookmarkForm {..} =
     (maybe True not _private)
     (fromMaybe False _toread)
     (fromMaybe False _selected)
+    _archiveUrl
 
 fetchBookmarkByUrl :: Key User -> Maybe Text -> DB (Maybe (Entity Bookmark, [Entity BookmarkTag]))
 fetchBookmarkByUrl userId murl = runMaybeT $ do
@@ -345,21 +350,25 @@ fetchBookmarkByUrl userId murl = runMaybeT $ do
 data UpsertResult = Created | Updated
 
 upsertBookmark:: Maybe (Key Bookmark) -> Bookmark -> [Text] -> DB (UpsertResult, Key Bookmark)
-upsertBookmark mbid bmark@Bookmark{..} tags = do
+upsertBookmark mbid bm tags = do
   res <- case mbid of
     Just bid -> do
       get bid >>= \case 
-        Just _ -> replaceBookmark bid
+        Just prev_bm -> replaceBookmark bid prev_bm
         _ -> fail "not found"
     Nothing -> do
-      getBy (UniqueUserHref bookmarkUserId bookmarkHref) >>= \case
-        Just (Entity bid _) -> replaceBookmark bid
-        _ -> (Created,) <$> insert bmark
-  insertTags bookmarkUserId (snd res)
+      getBy (UniqueUserHref (bookmarkUserId bm) (bookmarkHref bm)) >>= \case
+        Just (Entity bid prev_bm) -> replaceBookmark bid prev_bm
+        _ -> (Created,) <$> insert bm
+  insertTags (bookmarkUserId bm) (snd res)
   pure res
   where 
-    replaceBookmark bid = do
-      replace bid bmark
+    prepareReplace prev_bm = do
+      if (bookmarkHref bm /= bookmarkHref prev_bm)
+        then bm { bookmarkArchiveHref = Nothing }
+        else bm { bookmarkArchiveHref = bookmarkArchiveHref prev_bm }
+    replaceBookmark bid prev_bm = do
+      replace bid (prepareReplace prev_bm)
       deleteTags bid
       pure (Updated, bid)
     deleteTags bid =
@@ -368,6 +377,11 @@ upsertBookmark mbid bmark@Bookmark{..} tags = do
       forM_ (zip [1 ..] tags) $
       \(i, tag) -> void $ insert $ BookmarkTag userId tag bid' i
 
+updateBookmarkArchiveUrl :: Key User -> Key Bookmark -> Text -> DB ()
+updateBookmarkArchiveUrl userId bid archiveUrl = do
+  updateWhere
+    [BookmarkUserId ==. userId, BookmarkId ==. bid]
+    [BookmarkArchiveHref CP.=. Just archiveUrl]
 
 upsertNote:: Maybe (Key Note) -> Note -> DB (UpsertResult, Key Note)
 upsertNote mnid bmark@Note{..} = do
