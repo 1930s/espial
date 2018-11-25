@@ -377,11 +377,11 @@ upsertBookmark mbid bm tags = do
       forM_ (zip [1 ..] tags) $
       \(i, tag) -> void $ insert $ BookmarkTag userId tag bid' i
 
-updateBookmarkArchiveUrl :: Key User -> Key Bookmark -> Text -> DB ()
-updateBookmarkArchiveUrl userId bid archiveUrl = do
+updateBookmarkArchiveUrl :: Key User -> Key Bookmark -> Maybe Text -> DB ()
+updateBookmarkArchiveUrl userId bid marchiveUrl = do
   updateWhere
     [BookmarkUserId ==. userId, BookmarkId ==. bid]
-    [BookmarkArchiveHref CP.=. Just archiveUrl]
+    [BookmarkArchiveHref CP.=. marchiveUrl]
 
 upsertNote:: Maybe (Key Note) -> Note -> DB (UpsertResult, Key Note)
 upsertNote mnid bmark@Note{..} = do

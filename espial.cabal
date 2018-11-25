@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a561899a971961e839abb2d5941f5a2dd9f245b048cc1d0f54d97d2ae4ec9c6a
+-- hash: 667c28f19c7eca23b82ac1caff49925738f630ce9b8bd89fac8ddd281f431893
 
 name:           espial
 version:        0.0.6
@@ -149,6 +149,7 @@ library
       Application
       Foundation
       Handler.Add
+      Handler.Archive
       Handler.Common
       Handler.Edit
       Handler.Home

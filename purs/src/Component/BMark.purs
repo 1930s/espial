@@ -99,7 +99,7 @@ bmark b' =
          , a [ href (fromMaybe ("http://archive.is/" <> bm.url) (toMaybe bm.archiveUrl))
              , class_ ("link f7 gray hover-blue ml2" <> (guard (isJust (toMaybe bm.archiveUrl)) " green"))
              , target "_blank", title "archive link"]
-             [ text "🗄" ]
+             [ text "[@]" ]
          , br_
            -- 
          , div [ class_ "description mt1 mid-gray" ] (toTextarea bm.description)
