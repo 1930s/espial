@@ -13,7 +13,7 @@ import qualified Web.FormUrlEncoded as WH
 import qualified Control.Monad.Metrics as MM
 
 shouldArchiveBookmark :: User -> Key Bookmark -> Handler Bool
-shouldArchiveBookmark _ kbid = do
+shouldArchiveBookmark user kbid = do
   runDB (get kbid) >>= \case
     Nothing -> pure False
     Just bm -> do
@@ -21,7 +21,7 @@ shouldArchiveBookmark _ kbid = do
         (isNothing $ bookmarkArchiveHref bm) &&
         (bookmarkShared bm)
         && not (_isArchiveBlacklisted bm)
-     -- && isArchiveEnabled
+        && fromMaybe False (userArchiveDefault user)
 
 archiveBookmarkUrl :: Key Bookmark -> String -> Handler ()
 archiveBookmarkUrl kbid url = do

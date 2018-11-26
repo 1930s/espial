@@ -26,6 +26,8 @@ User json
   name Text
   passwordHash BCrypt
   apiToken Text Maybe
+  privateDefault Bool Maybe 
+  archiveDefault Bool Maybe 
   UniqueUserName name
   deriving Show Eq Typeable Ord
 

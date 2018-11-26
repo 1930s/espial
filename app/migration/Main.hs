@@ -19,7 +19,9 @@ data MigrationOpts
   | CreateUser { conn :: Text
                , userName :: Text
                , userPassword :: Text
-               , userApiToken :: Maybe Text}
+               , userApiToken :: Maybe Text
+               , privateDefault :: Maybe Bool
+               , archiveDefault :: Maybe Bool }
   | DeleteUser { conn :: Text
                , userName :: Text}
   | ImportBookmarks { conn :: Text
@@ -45,13 +47,17 @@ main = do
                      & set P.fkEnabled False
       P.runSqliteInfo connInfo runMigrations
 
-    CreateUser conn uname upass utoken ->
+    CreateUser conn uname upass utoken dprivate darchive ->
       P.runSqlite conn $ do
         hash' <- liftIO (hashPassword upass)
         void $ P.upsertBy
           (UniqueUserName uname)
-          (User uname hash' utoken)
-          [UserPasswordHash P.=. hash', UserApiToken P.=. utoken]
+          (User uname hash' utoken dprivate darchive)
+          [ UserPasswordHash P.=. hash'
+          , UserApiToken P.=. utoken
+          , UserPrivateDefault P.=. dprivate
+          , UserArchiveDefault P.=. darchive
+          ]
         pure () :: DB ()
 
     DeleteUser conn uname ->
