@@ -289,6 +289,22 @@ insertDirPbNotes userId noteDirectory = do
       noteBSS <- mapM (readFile . (fdir </>)) files 
       pure (mapM (A.eitherDecode' . fromStrict) noteBSS) 
 
+-- UserSettingsForm
+data UserSettingsForm = UserSettingsForm
+  { _privateDefault :: Bool 
+  , _archiveDefault :: Bool 
+  } deriving (Show, Eq, Read, Generic)
+
+instance FromJSON UserSettingsForm where parseJSON = A.genericParseJSON gDefaultFormOptions
+instance ToJSON UserSettingsForm where toJSON = A.genericToJSON gDefaultFormOptions
+
+toUserSettingsForm :: User -> UserSettingsForm
+toUserSettingsForm (User {..}) =
+  UserSettingsForm
+  { _privateDefault = fromMaybe False userPrivateDefault
+  , _archiveDefault = fromMaybe False userArchiveDefault
+  }
+
 -- BookmarkForm
 
 data BookmarkForm = BookmarkForm
@@ -304,11 +320,11 @@ data BookmarkForm = BookmarkForm
   , _archiveUrl :: Maybe Text
   } deriving (Show, Eq, Read, Generic)
 
-instance FromJSON BookmarkForm where parseJSON = A.genericParseJSON gBookmarkFormOptions
-instance ToJSON BookmarkForm where toJSON = A.genericToJSON gBookmarkFormOptions
+instance FromJSON BookmarkForm where parseJSON = A.genericParseJSON gDefaultFormOptions
+instance ToJSON BookmarkForm where toJSON = A.genericToJSON gDefaultFormOptions
 
-gBookmarkFormOptions :: A.Options
-gBookmarkFormOptions = A.defaultOptions { A.fieldLabelModifier = drop 1 } 
+gDefaultFormOptions :: A.Options
+gDefaultFormOptions = A.defaultOptions { A.fieldLabelModifier = drop 1 } 
 
 toBookmarkFormList :: [Entity Bookmark] -> [Entity BookmarkTag] -> [BookmarkForm]
 toBookmarkFormList bs as = do

@@ -5,13 +5,14 @@ import Prelude
 import Component.Add (addbmark)
 import Component.BList (blist)
 import Component.NList (nlist, nnote)
+import Component.UserSettings (usetting)
 import Data.Foldable (traverse_)
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
-import Model (Bookmark, Note)
+import Model (Bookmark, Note, UserSettings)
 import Web.DOM.Element (removeAttribute)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.HTMLElement (toElement)
@@ -41,6 +42,12 @@ renderNote renderElSelector note = do
   HA.runHalogenAff do
     HA.selectElement (QuerySelector renderElSelector) >>= traverse_ \el -> do
       void $ runUI (nnote note) unit el
+
+renderUserSettings :: String -> UserSettings -> Effect Unit
+renderUserSettings renderElSelector userSettings = do
+  HA.runHalogenAff do
+    HA.selectElement (QuerySelector renderElSelector) >>= traverse_ \el -> do
+      void $ runUI (usetting userSettings) unit el
 
 showFooter :: Aff Unit
 showFooter = HA.selectElement (QuerySelector ".user_footer") >>= traverse_ \el ->

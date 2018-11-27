@@ -6,9 +6,18 @@ import Handler.Common (lookupPagingParams)
 
 getUserSettingsR :: UserNameP -> Handler Html
 getUserSettingsR uname@(UserNameP name) = do
-  void requireAuthId
+  (userId, user) <- requireAuthPair
+  let userSettingsEl = "userSettings" :: Text
+  let userSettings = toUserSettingsForm user
   defaultLayout $ do
     $(widgetFile "user-settings")
+    toWidgetBody [julius|
+        app.userR = "@{UserR uname}";
+        app.dat.userSettings = #{ toJSON userSettings } || []; 
+    |]
+    toWidget [julius|
+      PS['User'].renderUserSettings('##{rawJS userSettingsEl}')(app.dat.userSettings)();
+    |]
 
 getUserR :: UserNameP -> Handler Html
 getUserR uname@(UserNameP name) = do

@@ -37,3 +37,12 @@ type Note =
 newtype Note' = Note' Note
 derive newtype instance note_rfI :: J.ReadForeign Note'
 derive newtype instance note_wfI :: J.WriteForeign Note'
+
+type UserSettings =
+  { archiveDefault :: Boolean
+  , privateDefault :: Boolean
+  }
+
+newtype UserSettings' = UserSettings' UserSettings
+derive newtype instance usersettings_rfI :: J.ReadForeign UserSettings'
+derive newtype instance usersettings_wfI :: J.WriteForeign UserSettings'

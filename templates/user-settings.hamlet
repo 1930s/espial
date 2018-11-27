@@ -3,3 +3,4 @@
     <div>
       <a .bookmarklet.link.f7.ba.b--dotted.b--light-silver href="javascript:q=location.href;if(document.getSelection){d=document.getSelection();}else{d='';};p=document.title;void(open('@{AddViewR}?_hasdata&url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p),'Espial','toolbar=no,width=700,height=350'));">add url bookmarklet
 
+    <div ##{userSettingsEl} .mt3>

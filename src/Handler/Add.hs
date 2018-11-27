@@ -36,7 +36,7 @@ bookmarkFormUrl = do
     <*> (lookupGetParam "title")
     <*> (lookupGetParam "description" >>= pure . fmap Textarea)
     <*> (lookupGetParam "tags")
-    <*> ((lookupGetParam "private" >>= pure . fmap parseChk) <&> (<|> userPrivateDefault user))
+    <*> (lookupGetParam "private" >>= pure . fmap parseChk <&> (<|> userPrivateDefault user))
     <*> (lookupGetParam "toread" >>= pure . fmap parseChk)
     <*> pure Nothing
     <*> pure Nothing
