@@ -1,11 +1,12 @@
 module Component.NList where
 
-import Data.Argonaut (toNumber)
 import Prelude hiding (div)
 
 import App (destroyNote, editNote)
 import Control.Monad.State.Class (class MonadState)
+import Data.Argonaut (toNumber)
 import Data.Array (drop, foldMap)
+import Data.Either (Either(..))
 import Data.Int as I
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Monoid (guard)
@@ -232,6 +233,9 @@ nnote st' =
     state <- H.get
     let nt = state.edit_note
     res <- H.liftAff (editNote nt)
-    let nt' = fromMaybe nt (toNumber res.response >>= I.fromNumber >>= \n -> Just (nt { id = n }))
-    H.put $ state { edit = false, note = nt', edit_note = nt' }
-    pure next
+    case res.body of
+      Left err -> pure next
+      Right r -> do
+        let nt' = fromMaybe nt (toNumber r >>= I.fromNumber >>= \n -> Just (nt { id = n }))
+        H.put $ state { edit = false, note = nt', edit_note = nt' }
+        pure next

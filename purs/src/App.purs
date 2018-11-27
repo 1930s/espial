@@ -2,6 +2,12 @@ module App where
 
 import Prelude
 
+import Affjax (Response, ResponseFormatError(..))
+import Affjax (defaultRequest) as AX
+import Affjax as Ax
+import Affjax.RequestBody as AXReq
+import Affjax.RequestHeader (RequestHeader(..))
+import Affjax.ResponseFormat as AXRes
 import Data.Argonaut (Json)
 import Data.Array ((:))
 import Data.Either (Either(..))
@@ -14,11 +20,6 @@ import Effect.Aff (Aff, launchAff)
 import Effect.Class (liftEffect)
 import Globals (app')
 import Model (Bookmark, Bookmark'(..), Note, Note'(..))
-import Network.HTTP.Affjax (affjax, AffjaxResponse)
-import Network.HTTP.Affjax (defaultRequest) as AX
-import Network.HTTP.Affjax.Request as AXReq
-import Network.HTTP.Affjax.Response as AXRes
-import Network.HTTP.RequestHeader (RequestHeader(..))
 import Simple.JSON as J
 import Web.Event.Event (Event, preventDefault)
 import Web.HTML (window)
@@ -35,24 +36,24 @@ toggleStar bid action = do
   let path = "bm/" <> show bid <> "/" <> show action
   void (fetchUrlEnc POST path Nothing AXRes.ignore)
 
-destroy :: Int -> Aff (AffjaxResponse Unit)
+destroy :: Int -> Aff (Response (Either ResponseFormatError Unit))
 destroy bid =
   fetchUrlEnc DELETE ("bm/" <> show bid) Nothing AXRes.ignore
 
-markRead :: Int -> Aff (AffjaxResponse Unit)
+markRead :: Int -> Aff (Response (Either ResponseFormatError Unit))
 markRead bid = do
   let path = "bm/" <> show bid <> "/read"
   fetchUrlEnc POST path Nothing AXRes.ignore
 
-editBookmark :: Bookmark -> Aff (AffjaxResponse Unit)
+editBookmark :: Bookmark -> Aff (Response (Either ResponseFormatError Unit))
 editBookmark bm =  do
     fetchJson POST "api/add" (Just (Bookmark' bm)) AXRes.ignore
 
-editNote :: Note -> Aff (AffjaxResponse Json)
+editNote :: Note -> Aff (Response (Either ResponseFormatError Json))
 editNote bm =  do
     fetchJson POST "api/note/add" (Just (Note' bm)) AXRes.json
 
-destroyNote :: Int -> Aff (AffjaxResponse Unit)
+destroyNote :: Int -> Aff (Response (Either ResponseFormatError Unit))
 destroyNote nid =  do
   fetchUrlEnc DELETE ("api/note/" <> show nid) Nothing AXRes.ignore
 
@@ -72,8 +73,8 @@ fetchJson
   => Method
   -> String
   -> Maybe b
-  -> AXRes.Response a
-  -> Aff (AffjaxResponse a)
+  -> AXRes.ResponseFormat a
+  -> Aff (Response (Either ResponseFormatError a))
 fetchJson method path content rt =
     fetchPath method path [ContentType applicationJSON] (AXReq.string <<< J.writeJSON <$> content) rt
 
@@ -82,8 +83,8 @@ fetchUrlEnc
      Method
   -> String
   -> Maybe FormURLEncoded
-  -> AXRes.Response a
-  -> Aff (AffjaxResponse a)
+  -> AXRes.ResponseFormat a
+  -> Aff (Response (Either ResponseFormatError a))
 fetchUrlEnc method path content rt =
     fetchPath method path [ContentType applicationFormURLEncoded] (AXReq.FormURLEncoded <$> content) rt
 
@@ -92,9 +93,9 @@ fetchPath
      Method
   -> String
   -> Array RequestHeader
-  -> Maybe AXReq.Request
-  -> AXRes.Response a
-  -> Aff (AffjaxResponse a)
+  -> Maybe AXReq.RequestBody
+  -> AXRes.ResponseFormat a
+  -> Aff (Response (Either ResponseFormatError a))
 fetchPath method path headers content rt =
     fetchUrl method ((app' unit).homeR <> path) headers content rt
 
@@ -103,16 +104,17 @@ fetchUrl
      Method
   -> String
   -> Array RequestHeader
-  -> Maybe AXReq.Request
-  -> AXRes.Response a
-  -> Aff (AffjaxResponse a)
+  -> Maybe AXReq.RequestBody
+  -> AXRes.ResponseFormat a
+  -> Aff (Response (Either ResponseFormatError a))
 fetchUrl method url headers content rt =
-  affjax rt
+  Ax.request
     AX.defaultRequest
     { url = url
     , method = Left method
     , headers = RequestHeader app.csrfHeaderName app.csrfToken : headers
     , content = content
+    , responseFormat = rt
     }
   where
     app = app' unit
